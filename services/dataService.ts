@@ -3,8 +3,8 @@ import * as XLSX from 'xlsx';
 
 // --- MOCK DATA GENERATION (BASED ON PDF OCR) ---
 const generateMockData = (): Acta[] => {
-  // Datos extraídos del PDF proporcionado (Año 2025)
-  const rawData = [
+  // Datos específicos extraídos del PDF (anomalías o estados específicos)
+  const anomalies = [
     { id: 193, fecha: '2025-02-11', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control no coincide y sin firma. Cuando esté firmada, reemplazar la que está en SIMI.' },
     { id: 194, fecha: '2025-02-12', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control sin firma y no coincide orden.' },
     { id: 195, fecha: '2025-02-13', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control sin firma.' },
@@ -39,18 +39,45 @@ const generateMockData = (): Acta[] => {
     { id: 382, fecha: '2025-12-17', estado: EstadoActa.PUBLICADA, firma: 'Firmada', obs: null },
   ];
 
-  return rawData.map(d => ({
-    id: `ACT-2025-${d.id}`,
-    numero: d.id,
-    fechaSesion: d.fecha,
-    periodo: 2025,
-    estado: d.estado,
-    ubicacion: d.estado === EstadoActa.PUBLICADA ? Ubicación.SISTEMA_SIMI : Ubicación.OFICINA,
-    firmaPresidente: d.firma as 'Pendiente' | 'Firmada' | null,
-    responsableActual: Responsable.SECRETARIA,
-    tieneObservaciones: !!d.obs,
-    observacionesTexto: d.obs || null
-  }));
+  // Mapa para búsqueda rápida de anomalías
+  const anomalyMap = new Map(anomalies.map(a => [a.id, a]));
+  const actas: Acta[] = [];
+
+  // Generar rango completo de actas 193 a 382 (Total 190 registros)
+  for (let i = 193; i <= 382; i++) {
+    const anomaly = anomalyMap.get(i);
+    
+    if (anomaly) {
+      actas.push({
+        id: `ACT-2025-${i}`,
+        numero: i,
+        fechaSesion: anomaly.fecha!,
+        periodo: 2025,
+        estado: anomaly.estado,
+        ubicacion: anomaly.estado === EstadoActa.PUBLICADA ? Ubicación.SISTEMA_SIMI : Ubicación.OFICINA,
+        firmaPresidente: anomaly.firma as any,
+        responsableActual: Responsable.SECRETARIA,
+        tieneObservaciones: !!anomaly.obs,
+        observacionesTexto: anomaly.obs || null
+      });
+    } else {
+      // Actas sin observaciones específicas en el reporte: Asumimos Publicadas/Correctas para rellenar
+      actas.push({
+        id: `ACT-2025-${i}`,
+        numero: i,
+        fechaSesion: '2025', // Fecha genérica al no estar en el reporte de anomalías
+        periodo: 2025,
+        estado: EstadoActa.PUBLICADA,
+        ubicacion: Ubicación.SISTEMA_SIMI,
+        firmaPresidente: 'Firmada',
+        responsableActual: Responsable.SECRETARIA,
+        tieneObservaciones: false,
+        observacionesTexto: null
+      });
+    }
+  }
+
+  return actas;
 };
 
 const allActas = generateMockData();
@@ -215,26 +242,34 @@ export const calculateStats = (actas: Acta[]): DashboardStats => {
     let isClassified = false;
     const estadoNorm = acta.estado.toLowerCase();
     const ubicacionNorm = acta.ubicacion.toLowerCase();
+    const firmaNorm = (acta.firmaPresidente || '').toLowerCase();
 
-    // 1. Finalizadas (SIMI)
+    // 1. PUBLICADAS / FINALIZADAS
+    // Regla: Estado Publicada O Ubicación en SIMI.
     if (estadoNorm === 'publicada' || ubicacionNorm.includes('simi')) {
       publicadas++;
       isClassified = true;
     } 
-    // 2. Pendientes Firma (Impresa, Firma Pendiente, SIN observaciones criticas)
+    // 2. EN REVISIÓN / TRÁMITE
+    // Regla: Estado explícito de revisión o borrador (prioridad alta).
+    else if (estadoNorm.includes('revis') || estadoNorm.includes('borrador')) {
+      pendientesObservaciones++;
+      isClassified = true;
+    }
+    // 3. PENDIENTES DE FIRMA
+    // Regla: Estado Impresa O (Firma Pendiente Y NO Revisión).
+    // NOTA: Se ignora la columna de observaciones para esta clasificación según reglas de negocio.
+    // Incluso si tiene observaciones, si es Impresa/Pendiente, se cuenta como Firma Pendiente.
     else if (
-      estadoNorm === 'impresa' &&
-      acta.firmaPresidente === 'Pendiente' &&
-      !acta.tieneObservaciones
+      estadoNorm === 'impresa' || 
+      (firmaNorm === 'pendiente' && !estadoNorm.includes('revis'))
     ) {
       pendientesFirma++;
       isClassified = true;
     }
-    // 3. En Trámite (Cualquier cosa con observaciones o en revision)
-    else if (
-      estadoNorm.includes('revis') ||
-      acta.tieneObservaciones
-    ) {
+    // 4. OBSERVACIONES / OTROS
+    // Catch-all: Si tiene observaciones y no cayó en ninguna de las anteriores.
+    else if (acta.tieneObservaciones) {
       pendientesObservaciones++;
       isClassified = true;
     }
@@ -243,12 +278,14 @@ export const calculateStats = (actas: Acta[]): DashboardStats => {
   });
 
   const total = actas.length;
-  const sumBuckets = publicadas + pendientesFirma + pendientesObservaciones;
+  // Cálculo final de integridad
+  const classifiedCount = publicadas + pendientesFirma + pendientesObservaciones;
+  
   return {
     total,
     publicadas,
     pendientesFirma,
     pendientesObservaciones,
-    sinClasificar: total - sumBuckets
+    sinClasificar: total - classifiedCount
   };
 };

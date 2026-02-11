@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
-  Filter
+  Filter,
+  ShieldCheck
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -39,6 +40,7 @@ const App: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [statusFilter, setStatusFilter] = useState<string>('ALL'); // ALL, ERROR, PENDING
+  const [showValidation, setShowValidation] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -223,6 +225,16 @@ const App: React.FC = () => {
               
               <div className="h-6 w-px bg-slate-200 hidden sm:block"></div>
 
+              {/* Validation Toggle */}
+              <button 
+                onClick={() => setShowValidation(!showValidation)}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors border border-transparent ${showValidation ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                title={showValidation ? "Ocultar validación" : "Ver validación de datos"}
+              >
+                <ShieldCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Validar</span>
+              </button>
+
               {uploadedData ? (
                  <button onClick={() => setUploadedData(null)} className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-md text-sm font-medium hover:bg-red-100 transition-colors">
                    <XCircle className="h-4 w-4" /> Restaurar
@@ -243,7 +255,12 @@ const App: React.FC = () => {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        <ValidationAlert unclassifiedCount={stats.sinClasificar} />
+        <ValidationAlert 
+          unclassifiedCount={stats.sinClasificar} 
+          totalCount={stats.total}
+          isVisible={showValidation || stats.sinClasificar > 0}
+          onClose={() => setShowValidation(false)}
+        />
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -347,7 +364,6 @@ const App: React.FC = () => {
                     <th className="px-4 py-3 w-20">Acta</th>
                     <th className="px-4 py-3 w-32">Fecha</th>
                     <th className="px-4 py-3">Estado</th>
-                    {/* Responsable column removed */}
                     <th className="px-4 py-3">Firma</th>
                     <th className="px-4 py-3 text-right">Observación</th>
                   </tr>
@@ -365,7 +381,6 @@ const App: React.FC = () => {
                           {acta.estado}
                         </span>
                       </td>
-                      {/* Responsable cell removed */}
                       <td className="px-4 py-3 text-slate-600">
                          {acta.firmaPresidente === 'Firmada' ? (
                             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
