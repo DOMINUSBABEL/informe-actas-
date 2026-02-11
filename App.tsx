@@ -302,7 +302,7 @@ const App: React.FC = () => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <input 
                     type="text" 
-                    placeholder="Buscar acta, responsable o estado..." 
+                    placeholder="Buscar acta o estado..." 
                     className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -347,7 +347,7 @@ const App: React.FC = () => {
                     <th className="px-4 py-3 w-20">Acta</th>
                     <th className="px-4 py-3 w-32">Fecha</th>
                     <th className="px-4 py-3">Estado</th>
-                    <th className="px-4 py-3">Responsable</th>
+                    {/* Responsable column removed */}
                     <th className="px-4 py-3">Firma</th>
                     <th className="px-4 py-3 text-right">Observación</th>
                   </tr>
@@ -365,9 +365,7 @@ const App: React.FC = () => {
                           {acta.estado}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-slate-600 text-xs max-w-[150px] truncate" title={acta.responsableActual}>
-                        {acta.responsableActual}
-                      </td>
+                      {/* Responsable cell removed */}
                       <td className="px-4 py-3 text-slate-600">
                          {acta.firmaPresidente === 'Firmada' ? (
                             <CheckCircle2 className="h-4 w-4 text-emerald-500" />
@@ -396,7 +394,7 @@ const App: React.FC = () => {
                   ))}
                   {paginatedActas.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
+                      <td colSpan={5} className="px-4 py-12 text-center text-slate-400 flex flex-col items-center justify-center gap-2">
                         <Filter className="h-8 w-8 text-slate-200" />
                         <p>No se encontraron registros con los filtros actuales.</p>
                       </td>

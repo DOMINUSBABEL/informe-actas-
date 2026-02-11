@@ -1,43 +1,56 @@
 import { Acta, EstadoActa, Responsable, Ubicación, DashboardStats } from '../types';
 import * as XLSX from 'xlsx';
 
-// --- MOCK DATA GENERATION ---
+// --- MOCK DATA GENERATION (BASED ON PDF OCR) ---
 const generateMockData = (): Acta[] => {
-  const data: Acta[] = [];
-  const currentYear = new Date().getFullYear();
+  // Datos extraídos del PDF proporcionado (Año 2025)
+  const rawData = [
+    { id: 193, fecha: '2025-02-11', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control no coincide y sin firma. Cuando esté firmada, reemplazar la que está en SIMI.' },
+    { id: 194, fecha: '2025-02-12', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control sin firma y no coincide orden.' },
+    { id: 195, fecha: '2025-02-13', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control sin firma.' },
+    { id: 196, fecha: '2025-02-14', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control no coincide y sin firma.' },
+    { id: 197, fecha: '2025-02-17', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control sin firma.' },
+    { id: 198, fecha: '2025-02-18', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control sin firma.' },
+    { id: 199, fecha: '2025-02-19', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de control sin firma.' },
+    { id: 200, fecha: '2025-02-20', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'Falta en los anexos memorando de convocatoria. Repetir foliación porque tiene tachones.' },
+    { id: 201, fecha: '2025-02-21', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Cambiar a carpeta blanca. Repetir foliación.' },
+    { id: 202, fecha: '2025-02-24', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de Control sin firma.' },
+    { id: 203, fecha: '2025-02-25', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'Falta anexo de memorando convocatoria. Hoja de Control sin firma.' },
+    { id: 204, fecha: '2025-02-26', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Hoja de Control sin firma.' },
+    { id: 205, fecha: '2025-02-27', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Guardar en carpeta blanca.' },
+    { id: 206, fecha: '2025-03-01', estado: EstadoActa.PUBLICADA, firma: 'Firmada', obs: 'Hoja de control sin firma.' }, // Adoptada acta 206
+    { id: 207, fecha: '2025-03-03', estado: EstadoActa.PUBLICADA, firma: 'Firmada', obs: 'Hoja de control sin firma. Guardar en carpeta blanca.' },
+    { id: 208, fecha: '2025-03-04', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'En los anexos falta memorando de convocatoria. Corregir acta.' },
+    { id: 211, fecha: '2025-03-07', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'Repetir foliación pasa de 47 a 38. Repetir y firmar hoja de control.' },
+    { id: 213, fecha: '2025-03-10', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'PERDIDA. Está correctamente subida a SIMI sin firma.' },
+    { id: 214, fecha: '2025-03-11', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Hoja de control sin firmar. Cambiar a carpeta blanca.' },
+    { id: 232, fecha: '2025-04-07', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'Sin subir en SIMI. Hoja de control sin firmar.' },
+    { id: 239, fecha: '2025-04-23', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'Está subida en SIMI el acta 233, el cambio hay que hacerlo. Mal impreso.' },
+    { id: 252, fecha: '2025-05-08', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'Archivo en SIMI tiene las firmas erradas, volver a subir. Hoja de control sin firmar.' },
+    { id: 269, fecha: '2025-06-24', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'Se devuelve para revisión. Imprimir hoja de control.' },
+    { id: 270, 'fecha': '2025-06-25', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Impresa sin firma. Cambiar a carpeta blanca.' },
+    { id: 272, fecha: '2025-06-27', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Revisar índice antes de imprimir. Cambiar a carpeta blanca.' },
+    { id: 281, fecha: '2025-07-14', estado: EstadoActa.BORRADOR, firma: 'Pendiente', obs: 'No está en F. Sin información.' },
+    { id: 282, fecha: '2025-07-15', estado: EstadoActa.EN_REVISION, firma: 'Pendiente', obs: 'PERDIDA, Mariam la encontró después de la 249.' },
+    { id: 323, fecha: '2025-10-07', estado: EstadoActa.PUBLICADA, firma: 'Firmada', obs: null },
+    { id: 334, fecha: '2025-10-22', estado: EstadoActa.PUBLICADA, firma: 'Firmada', obs: 'Falta firma original en acta 328.' },
+    { id: 350, fecha: '2025-11-11', estado: EstadoActa.IMPRESA, firma: 'Pendiente', obs: 'Imprimir hoja de control. Carpeta blanca.' },
+    { id: 370, fecha: '2025-12-02', estado: EstadoActa.PUBLICADA, firma: 'Firmada', obs: 'Verificar índice antes de imprimir.' },
+    { id: 382, fecha: '2025-12-17', estado: EstadoActa.PUBLICADA, firma: 'Firmada', obs: null },
+  ];
 
-  const createActa = (id: number, periodo: number, overrides: Partial<Acta>): Acta => ({
-    id: `ACT-${periodo}-${id.toString().padStart(3, '0')}`,
-    numero: id,
-    fechaSesion: `${periodo}-0${Math.floor(Math.random() * 9) + 1}-${Math.floor(Math.random() * 28) + 1}`,
-    periodo,
-    estado: EstadoActa.BORRADOR,
-    ubicacion: Ubicación.OFICINA,
-    firmaPresidente: null,
+  return rawData.map(d => ({
+    id: `ACT-2025-${d.id}`,
+    numero: d.id,
+    fechaSesion: d.fecha,
+    periodo: 2025,
+    estado: d.estado,
+    ubicacion: d.estado === EstadoActa.PUBLICADA ? Ubicación.SISTEMA_SIMI : Ubicación.OFICINA,
+    firmaPresidente: d.firma as 'Pendiente' | 'Firmada' | null,
     responsableActual: Responsable.SECRETARIA,
-    tieneObservaciones: false,
-    observacionesTexto: null,
-    ...overrides
-  });
-
-  // Mock data logic remains the same for testing without files
-  for (let i = 1; i <= 15; i++) {
-    data.push(createActa(i, currentYear, { estado: EstadoActa.PUBLICADA, ubicacion: Ubicación.SISTEMA_SIMI, firmaPresidente: 'Firmada' }));
-  }
-  for (let i = 16; i <= 23; i++) {
-    data.push(createActa(i, currentYear, { estado: EstadoActa.IMPRESA, firmaPresidente: 'Pendiente', observacionesTexto: null, tieneObservaciones: false, ubicacion: Ubicación.DESPACHO }));
-  }
-  for (let i = 24; i <= 30; i++) {
-    const subtype = i % 3;
-    if (subtype === 0) data.push(createActa(i, currentYear, { estado: EstadoActa.EN_REVISION, responsableActual: Responsable.CONCEJAL }));
-    else if (subtype === 1) data.push(createActa(i, currentYear, { responsableActual: Responsable.CONCEJAL, tieneObservaciones: true }));
-    else data.push(createActa(i, currentYear, { tieneObservaciones: true, observacionesTexto: "Corregir asistencia" }));
-  }
-  data.push(createActa(99, currentYear, { estado: EstadoActa.BORRADOR, firmaPresidente: null, tieneObservaciones: false, responsableActual: Responsable.SECRETARIA }));
-  for (let i = 1; i <= 50; i++) {
-    data.push(createActa(i, currentYear - 1, { estado: EstadoActa.PUBLICADA, ubicacion: Ubicación.SISTEMA_SIMI }));
-  }
-  return data;
+    tieneObservaciones: !!d.obs,
+    observacionesTexto: d.obs || null
+  }));
 };
 
 const allActas = generateMockData();
