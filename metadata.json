@@ -1,0 +1,5 @@
+{
+  "name": "Tablero Estado de Actas",
+  "description": "Dashboard de visualización rápida para el seguimiento del estado de actas de sesiones (SIMI, Firma, Observaciones).",
+  "requestFramePermissions": []
+}
